@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Pesquisas â Zukkin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    color: white; padding: 20px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .header-logo span { color: #e94560; }
+  .header-subtitle { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+  .header-badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 20px; font-size: 13px; }
+  .header-date { font-size: 12px; opacity: 0.6; margin-top: 3px; text-align: right; }
+
+  /* LAYOUT */
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px 24px 40px; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin: 28px 0 14px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+
+  /* KPI CARDS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .kpi-card {
+    background: white; border-radius: 14px; padding: 20px 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-top: 3px solid transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 8px; }
+  .kpi-value { font-size: 30px; font-weight: 800; line-height: 1; }
+  .kpi-sub { font-size: 12px; color: #94a3b8; margin-top: 5px; }
+  .kpi-blue { border-color: #3b82f6; } .kpi-blue .kpi-value { color: #1d4ed8; }
+  .kpi-green { border-color: #22c55e; } .kpi-green .kpi-value { color: #16a34a; }
+  .kpi-red { border-color: #ef4444; } .kpi-red .kpi-value { color: #dc2626; }
+  .kpi-orange { border-color: #f97316; } .kpi-orange .kpi-value { color: #ea580c; }
+  .kpi-purple { border-color: #a855f7; } .kpi-purple .kpi-value { color: #9333ea; }
+  .kpi-yellow { border-color: #eab308; } .kpi-yellow .kpi-value { color: #ca8a04; }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-12 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+  .grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+  /* CARDS */
+  .card {
+    background: white; border-radius: 14px; padding: 22px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .card-title { font-size: 14px; font-weight: 700; color: #374151; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .card-title .icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+  /* RESPONSÃVEL CARDS */
+  .resp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .resp-card {
+    background: white; border-radius: 14px; padding: 18px 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid #3b82f6;
+    position: relative; overflow: hidden;
+  }
+  .resp-card::before { content: ''; position: absolute; top: 0; right: 0; width: 80px; height: 80px; border-radius: 50%; opacity: 0.06; transform: translate(20px, -20px); }
+  .resp-card.verde { border-left-color: #22c55e; } .resp-card.verde::before { background: #22c55e; }
+  .resp-card.amarelo { border-left-color: #eab308; } .resp-card.amarelo::before { background: #eab308; }
+  .resp-card.vermelho { border-left-color: #ef4444; } .resp-card.vermelho::before { background: #ef4444; }
+  .resp-card.azul { border-left-color: #3b82f6; } .resp-card.azul::before { background: #3b82f6; }
+
+  .resp-name { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+  .resp-sub { font-size: 11px; color: #94a3b8; margin-bottom: 14px; }
+  .resp-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .resp-metric { text-align: center; }
+  .resp-metric-val { font-size: 20px; font-weight: 800; }
+  .resp-metric-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px; color: #94a3b8; margin-top: 1px; }
+  .resp-metric.concluidas .resp-metric-val { color: #16a34a; }
+  .resp-metric.atrasadas .resp-metric-val { color: #dc2626; }
+  .resp-metric.aguardando .resp-metric-val { color: #d97706; }
+  .resp-metric.reprovadas .resp-metric-val { color: #7c3aed; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { margin-top: 6px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-bottom: 5px; }
+  .progress-bar { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+  .fill-green { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .fill-orange { background: linear-gradient(90deg, #f97316, #ea580c); }
+  .fill-red { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+  /* STATUS BADGE */
+  .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-verde { background: #dcfce7; color: #15803d; }
+  .badge-amarelo { background: #fef9c3; color: #854d0e; }
+  .badge-vermelho { background: #fee2e2; color: #991b1b; }
+  .badge-azul { background: #dbeafe; color: #1d4ed8; }
+  .badge-roxo { background: #f3e8ff; color: #7c3aed; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table thF&ÆRF²&6¶w&÷VæC¢6cff3²FFæs¢G²FWBÖÆvã¢ÆVgC²föçB×6¦S¢²föçB×vVvC¢s²FWB×G&ç6f÷&Ó¢WW&66S²ÆWGFW"×76æs¢ãW²6öÆ÷#¢3cCsC#²&÷&FW"Ö&÷GFöÓ¢'6öÆB6S&Sc²Ð¢æFF×F&ÆRFB²FFæs¢G²&÷&FW"Ö&÷GFöÓ¢6öÆB6ccVc²fW'F6ÂÖÆvã¢ÖFFÆS²Ð¢æFF×F&ÆRG#¦Æ7BÖ6ÆBFB²&÷&FW"Ö&÷GFöÓ¢æöæS²Ð¢æFF×F&ÆRG#¦÷fW"FB²&6¶w&÷VæC¢6cff3²Ð¢æfF"²vGF¢3²VvC¢3²&÷&FW"×&FW3¢SS²F7Æ¢fÆW²ÆvâÖFV×3¢6VçFW#²§W7FgÖ6öçFVçC¢6VçFW#²föçB×6¦S¢'²föçB×vVvC¢s²6öÆ÷#¢vFS²fÆW×6&æ³¢²Ð ¢ò¢4TÜ8dõ$ò¢ð¢ç6VÖf÷&ò²F7Æ¢fÆW²ÆvâÖFV×3¢6VçFW#²v¢²Ð¢ç6VÖf÷&òÖF÷B²vGF¢²VvC¢²&÷&FW"×&FW3¢SS²Ð¢æF÷B×fW&FR²&6¶w&÷VæC¢3#&3SVS²&÷×6F÷s¢g3#&3SVS²Ð¢æF÷BÖÖ&VÆò²&6¶w&÷VæC¢6V#3²&÷×6F÷s¢g6V#3²Ð¢æF÷B×fW&ÖVÆò²&6¶w&÷VæC¢6VcCCCC²&÷×6F÷s¢g6VcCCCC²Ð ¢ò¢Ôä4%B¢ð¢æÖæÖFöçWB×w&²÷6Föã¢&VÆFfS²vGF¢²VvC¢²Ö&vã¢WFó²Ð¢æÖæÖFöçWBÖ6VçFW"²÷6Föã¢'6öÇWFS²F÷¢SS²ÆVgC¢SS²G&ç6f÷&Ó¢G&ç6ÆFRÓSRÂÓSR²FWBÖÆvã¢6VçFW#²Ð¢æÖæÖFöçWB×7B²föçB×6¦S¢²föçB×vVvC¢²6öÆ÷#¢3S#6#²ÆæRÖVvC¢²Ð¢æÖæÖFöçWBÖÆ&Â²föçB×6¦S¢²6öÆ÷#¢3F6#²Ð ¢ò¢dÅDU"$"¢ð¢æfÇFW"Ö&"²F7Æ¢fÆW²v¢²Ö&vâÖ&÷GFöÓ¢g²fÆW×w&¢w&²Ð¢æfÇFW"Ö'Fâ²FFæs¢gG²&÷&FW"×&FW3¢#²&÷&FW#¢ãW6öÆB6S&Sc²&6¶w&÷VæC¢vFS²föçB×6¦S¢'²föçB×vVvC¢c²7W'6÷#¢öçFW#²G&ç6Föã¢ÆÂãW3²6öÆ÷#¢33sCS²Ð¢æfÇFW"Ö'Fã¦÷fW"ÂæfÇFW"Ö'Fâæ7FfR²&6¶w&÷VæC¢3c3Cc²6öÆ÷#¢vFS²&÷&FW"Ö6öÆ÷#¢3c3Cc²Ð ¢ò¢$4²äD4Dõ"¢ð¢ç&6²×&÷r²F7Æ¢fÆW²ÆvâÖFV×3¢6VçFW#²v¢'²FFæs¢'²&÷&FW"Ö&÷GFöÓ¢6öÆB6ccVc²Ð¢ç&6²×&÷s¦Æ7BÖ6ÆB²&÷&FW"Ö&÷GFöÓ¢æöæS²Ð¢ç&6²ÖæÖR²föçB×6¦S¢7²föçB×vVvC¢c²fÆW¢²Ð¢ç&6²Ö&'2²fÆW¢#²Ð¢ç&6²×7FB²föçB×6¦S¢'²6öÆ÷#¢3cCsC#²vFR×76S¢æ÷w&²Ð ¢ò¢5D4´TB$"¢ð¢ç7F6¶VBÖ&"²VvC¢'²&÷&FW"×&FW3¢g²÷fW&fÆ÷s¢FFVã²F7Æ¢fÆW²Ð¢ç7F6²×6Vr²VvC¢S²G&ç6Föã¢vGFãW3²Ð ¢ò¢DÄÂ¢ð¢æF×ÆÂ²F7Æ¢æÆæRÖ&Æö6³²FFæs¢'²&÷&FW"×&FW3¢²föçB×6¦S¢²föçB×vVvC¢s²&6¶w&÷VæC¢6SSvfc²6öÆ÷#¢33s33²Ð ¢6çf2²ÖÖVvC¢#c²Ð ¢ÖVFÖ×vGF¢#°¢æ·Öw&B²w&B×FV×ÆFRÖ6öÇVÖç3¢&WVB2Âg"²Ð¢ç&W7Öw&B²w&B×FV×ÆFRÖ6öÇVÖç3¢&WVB"Âg"²Ð¢æw&BÓ"Âæw&BÓ2Âæw&BÓ"Âæw&BÓ#²w&B×FV×ÆFRÖ6öÇVÖç3¢g#²Ð¢Ð£Â÷7GÆSà£ÂöVCà£Æ&öGà £ÂÒÒTDU"ÒÓà£ÆFb6Æ73Ò&VFW"#à¢ÆFb6Æ73Ò&VFW"ÖÆVgB#à¢ÆFcà¢ÆFb6Æ73Ò&VFW"ÖÆövò#ç§V³Ç7ãæ¶ãÂ÷7ãâÇ7â7GÆSÒ&föçB×vVvC£C¶föçB×6¦S£g¶÷6G£ãr#ì+rF6&ö&BFRW7V63Â÷7ããÂöFcà¢ÆFb6Æ73Ò&VFW"×7V'FFÆR#å6VÖæ#2ó2#ó2+r¤tòfVÆB÷W&Föç3ÂöFcà¢ÂöFcà¢ÂöFcà¢ÆFb7GÆSÒ'FWBÖÆvã§&vB#à¢ÆFb6Æ73Ò&VFW"Ö&FvR#ãb&W7öç<:fV2+rãsW7V63ÂöFcà¢ÆFb6Æ73Ò&VFW"ÖFFR#äGVÆ¦FòVÒ#Ró2ó##b+rV'FÖfV&ÂöFcà¢ÂöFcà£ÂöFcà £ÆFb6Æ73Ò&6öçFæW"#à ¢ÂÒÒµ2tÄô$2ÒÓà¢ÆFb6Æ73Ò'6V7Föâ×FFÆR#åf<:6òvW&ÂF6VÖæÂöFcà¢ÆFb6Æ73Ò&·Öw&B#à¢ÆFb6Æ73Ò&·Ö6&B·Ö&ÇVR#à¢ÆFb6Æ73Ò&·ÖÆ&VÂ#åF÷FÂW7V63ÂöFcà¢ÆFb6Æ73Ò&·×fÇVR#ããsÂöFcà¢ÆFb6Æ73Ò&·×7V"#ã#2ó2#ó3ÂöFcà¢ÂöFcà¢ÆFb6Æ73Ò&·Ö6&B·Öw&VVâ#à¢ÆFb6Æ73Ò&·ÖÆ&VÂ#ä6öæ6Ç\:ÖF3ÂöFcà¢ÆFb6Æ73Ò&·×fÇVR#ãsSÂöFcà¢ÆFb6Æ73Ò&·×7V"#ãCRÃrRFòF÷FÃÂöFcà¢ÂöFcà¢ÆFb6Æ73Ò&·Ö6&B·Ö÷&ævR#à¢ÆFb6Æ73Ò&·ÖÆ&VÂ#äwV&FæFóÂöFcà¢ÆFb6Æ73Ò&·×fÇVR#ãsSÂöFcà¢ÆFb6Æ73Ò&·×7V"#ãC2ÃbRFòF÷FÃÂöFcà¢ÂöFcà¢ÆFb6Æ73Ò&·Ö6&B·×&VB#à¢ÆFb6Æ73Ò&·ÖÆ&VÂ#ä¬:G&6F3ÂöFcà¢ÆFb6Æ73Ò&·×fÇVR#ãc3ÂöFcà¢ÆFb6Æ73Ò&·×7V"#ã2ÃrRFòF÷FÃÂöFcà¢ÂöFcà¢ÆFb6Æ73Ò&·Ö6&B·×W'ÆR#à¢ÆFb6Æ73Ò&·ÖÆ&VÂ#å&W&÷fF3ÂöFcà¢ÆFb6Æ73Ò&·×fÇVR#ã#ÂöFcà¢ÆFb6Æ73Ò&·×7V"#ãrÃBRFòF÷FÃÂöFcà¢ÂöFcà¢ÆFb6Æ73Ò&·Ö6&B·×VÆÆ÷r#à¢ÆFb6Æ73Ò&·ÖÆ&VÂ#äVÒæFÖVçFóÂöFcà¢ÆFb6Æ73Ò&·×fÇVR#ãSCÂöFcà¢ÆFb6Æ73Ò&·×7V"#ä6V6²ÔâFfóÂöFcà¢ÂöFcà¢ÂöFcà ¢ÂÒÒ4TÜ8dõ$òDR$44òõ"$U5ôå<8dTÂÒÓà¢ÆFb6Æ73Ò'6V7Föâ×FFÆR#å6VÜ:f÷&òFR&66ò(	B&W7öç<:fV3ÂöFcà¢ÆFb6Æ73Ò&6&B#à¢ÆFb6Æ73Ò&6&B×FFÆR#à¢ÆFb6Æ73Ò&6öâ"7GÆSÒ&&6¶w&÷VæC¢6fVc63r#ï	ùªcÂöFcà¢ì:Æ6RFR&66ò÷"&W7öç<:fVÂ+r6VÖæ#2ó>(	3#ó0¢ÂöFcà¢ÇF&ÆR6Æ73Ò&FF×F&ÆR#à¢ÇFVCà¢ÇG#à¢ÇFå&W7öç<:fVÃÂ÷Fà¢ÇFåF÷FÃÂ÷Fà¢ÇFä6öæ6Ç\:ÖF3Â÷Fà¢ÇFäwV&FæFóÂ÷Fà¢ÇFäG&6F3Â÷Fà¢ÇFå&W&÷fF3Â÷Fà¢ÇFåF6öæ6ÇW<:6óÂ÷Fà¢ÇFäF7G&'V:|:6óÂ÷Fà¢ÇFå&66óÂ÷Fà¢Â÷G#à¢Â÷FVCà¢ÇF&öGCÒ'&66ò×F&öG#ãÂ÷F&öGà¢Â÷F&ÆSà¢ÂöFcà ¢ÂÒÒ4%E2$õrÒÓà¢ÆFb6Æ73Ò'6V7Föâ×FFÆR#äF7G&'V:|:6ò÷"7FGW3ÂöFcà¢ÆFb6Æ73Ò&w&BÓ##à¢ÆFb6Æ73Ò&6&B#à¢ÆFb6Æ73Ò&6&B×FFÆR#ãÆFb6Æ73Ò&6öâ"7GÆSÒ&&6¶w&÷VæC¢6F&VfR#ï	ù8£ÂöFcåW7V62÷"&W7öç<:fVÂ(	B7FGW2V×ÆFóÂöFcà¢Æ6çf2CÒ&6'E7F6¶VB#ãÂö6çf3à¢ÂöFcà¢ÆFb6Æ73Ò&6&B#à¢ÆFb6Æ73Ò&6&B×FFÆR#ãÆFb6Æ73Ò&6öâ"7GÆSÒ&&6¶w&÷VæC¢6f6Svc2#ï	øÚÂöFcå7FGW2vÆö&ÃÂöFcà¢Æ6çf2CÒ&6'DFöçWB#ãÂö6çf3à¢ÆFbCÒ&ÆVvVæDFöçWB"7GÆSÒ&Ö&vâ×F÷£G¶F7Æ¦fÆW¶fÆW×w&§w&¶v£¶§W7FgÖ6öçFVçC¦6VçFW#¶föçB×6¦S£'²#ãÂöFcà¢ÂöFcà¢ÂöFcà ¢ÂÒÒ4$E2DR$U5ôå<8dTÂÒÓà¢ÆFb6Æ73Ò'6V7Föâ×FFÆR#åæVÂæFfGVÂ÷"&W7öç<:fVÃÂöFcà¢ÆFb6Æ73Ò'&W7Öw&B"CÒ'&W7Öw&B#ãÂöFcà ¢ÂÒÒ4%E2$õr"ÒÓà¢ÆFb6Æ73Ò'6V7Föâ×FFÆR#äF7G&'V:|:6òFV×÷&ÂR6ÆVçFW3ÂöFcà¢ÆFb6Æ73Ò&w&BÓ"#à¢ÆFb6Æ73Ò&6&B#à¢ÆFb6Æ73Ò&6&B×FFÆR#ãÆFb6Æ73Ò&6öâ"7GÆSÒ&&6¶w&÷VæC¢6F6f6Sr#ï	ù8SÂöFcåW7V62÷"FF/div>
+      <canvas id="chartDia"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="icon" style="background:#ede9fe">ð¬</div>Top Clientes â Pesquisas no PerÃ­odo</div>
+      <canvas id="chartCliente"></canvas>
+    </div>
+  </div>
+
+  <!-- PROJEÃÃO DE ENTREGA -->
+  <div class="section-title">ProjeÃ§Ã£o de Entrega vs. Atraso</div>
+  <div class="grid-3">
+    <div class="card" style="border-top: 3px solid #22c55e;">
+      <div class="card-title"><div class="icon" style="background:#dcfce7">â</div>Entregues no Prazo</div>
+      <div style="font-size:48px;font-weight:900;color:#16a34a;line-height:1">785</div>
+      <div style="font-size:13px;color:#94a3b8;margin:6px 0 16px">Auditado + Realizado + Enviado</div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:45.7%"></div></div>
+      <div style="font-size:12px;color:#64748b;margin-top:6px">45,7% concluÃ­das atÃ© agora</div>
+      <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#16a34a">624</div>
+          <div style="font-size:10px;color:#94a3b8;text-transform:uppercase">Auditadas</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:800;color:#22c55e">161</div>
+          <div style="font-size:10px;color:#94a3b8;text-transform:uppercase">Realizadas</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-top: 3px solid #ef4444;">
+      <div class="card-title"><div class="icon" style="background:#fee2e2">â ï¸</div>JÃ¡ Atrasadas</div>
+      <div style="font-size:48px;font-weight:900;color:#dc2626;line-height:1">63</div>
+      <div style="font-size:13px;color:#94a3b8;margin:6px 0 16px">Pesquisas com flag "Atrasado"</div>
+      <div class="progress-bar"><div class="progress-fill fill-red" style="width:3.7%"></div></div>
+      <div style="font-size:12px;color:#64748b;margin-top:6px">3,7% do total da semana</div>
+      <div style="margin-top:16px">
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">AndrÃ© Bezerra</span>
+          <span style="font-weight:700;color:#dc2626">20</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Gabriela Prado</span>
+          <span style="font-weight:700;color:#dc2626">11</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Julia Alves</span>
+          <span style="font-weight:700;color:#dc2626">10</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Mariana Dantas</span>
+          <span style="font-weight:700;color:#dc2626">10</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Luiz Felipe Paiva</span>
+          <span style="font-weight:700;color:#dc2626">9</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Nicole Parolin</span>
+          <span style="font-weight:700;color:#dc2626">3</span>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-top: 3px solid #f97316;">
+      <div class="card-title"><div class="icon" style="background:#ffedd5">ð</div>Em Risco de Atraso</div>
+      <div style="font-size:48px;font-weight:900;color:#ea580c;line-height:1">750</div>
+      <div style="font-size:13px;color:#94a3b8;margin:6px 0 16px">Aguardando + Pendentes (ainda sem execuÃ§Ã£o)</div>
+      <div class="progress-bar"><div class="progress-fill fill-orange" style="width:43.6%"></div></div>
+      <div style="font-size:12px;color:#64748b;margin-top:6px">43,6% ainda aguardam execuÃ§Ã£o</div>
+      <div style="margin-top:16px">
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">AndrÃ© Bezerra</span>
+          <span style="font-weight:700;color:#ea580c">212</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Mariana Dantas</span>
+          <span style="font-weight:700;color:#ea580c">159</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Julia Alves</span>
+          <span style="font-weight:700;color:#ea580c">104</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Nicole Parolin</span>
+          <span style="font-weight:700;color:#ea580c">97</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Gabriela Prado</span>
+          <span style="font-weight:700;color:#ea580c">95</span>
+        </div>
+        <div class="risk-row" style="padding:8px 0">
+          <span style="font-size:12px;flex:1">Luiz Felipe Paiva</span>
+          <span style="font-weight:700;color:#ea580c">85</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// âââ DATA âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const RESP_COLORS = {
+  'AndrÃ© Bezerra':   '#3b82f6',
+  'Julia Alves':     '#8b5cf6',
+  'Luiz Felipe Paiva': '#06b6d4',
+  'Mariana Dantas':  '#f59e0b',
+  'Gabriela Prado':  '#10b981',
+  'Nicole Parolin':  '#f43f5e'
+};
+
+const RESP_DATA = {
+  'AndrÃ© Bezerra':    { total:468, concluidas:201, aguardando:212, atrasadas:20, emAndamento:18, reprovadas:37, clientes:9,
+    statusBreakdown:{ 'Auditado':144,'Realizado':53,'Realizado Parcialmente':4,'Check In':18,'Aguardando':211,'Aguardando LiberaÃ§Ã£o':1,'Reprovado':37 }},
+  'Julia Alves':      { total:239, concluidas:104, aguardando:104, atrasadas:10, emAndamento:7,  reprovadas:24, clientes:6,
+    statusBreakdown:{ 'Auditado':93,'Realizado':11,'Check In':7,'Aguardando':104,'Reprovado':24 }},
+  'Luiz Felipe Paiva':{ total:197, concluidas:90,  aguardando:85,  atrasadas:9,  emAndamento:7,  reprovadas:15, clientes:14,
+    statusBreakdown:{ 'Auditado':60,'Realizado':29,'Realizado Parcialmente':1,'Check In':7,'Aguardando':80,'Aguardando LiberaÃ§Ã£o':5,'Reprovado':15 }},
+  'Mariana Dantas':   { total:334, concluidas:150, aguardando:159, atrasadas:10, emAndamento:7,  reprovadas:18, clientes:13,
+    statusBreakdown:{ 'Auditado':115,'Realizado':30,'Realizado Parcialmente':5,'Check In':7,'Aguardando':156,'Aguardando LiberaÃ§Ã£o':3,'Reprovado':18 }},
+  'Gabriela Prado':   { total:238, concluidas:126, aguardando:95,  atrasadas:11, emAndamento:9,  reprovadas:8,  clientes:10,
+    statusBreakdown:{ 'Auditado':109,'Realizado':14,'Realizado Parcialmente':3,'Check In':9,'Aguardando':95,'Reprovado':8 }},
+  'Nicole Parolin':   { total:243, concluidas:114, aguardando:97,  atrasadas:3,  emAndamento:6,  reprovadas:26, clientes:13,
+    statusBreakdown:{ 'Auditado':103,'Realizado':8,'Realizado Parcialmente':3,'Check In':6,'Aguardando':93,'Aguardando LiberaÃ§Ã£o':4,'Reprovado':26 }}
+};
+
+const STATUS_GLOBAL = {
+  'Auditado': 624, 'Realizado': 145, 'Check In': 54,
+  'Aguardando': 739, 'Reprovado': 128, 'Realizado Parcialmente': 16, 'Aguardando LiberaÃ§Ã£o': 13
+};
+
+const BY_DIA = { '23/03':605,'24/03':458,'25/03':312,'26/03':239,'27/03':105 };
+
+const TOP_CLIENTES = [
+  ['Atakarejo',241],['NordestÃ£o',202],['Muffato',185],['Grupo PÃ£o de AÃ§Ãºcar',112],
+  ['Spani',96],['Swift',88],['Lopes',72],['Barbosa',55],['SÃ£o Vicente',48],['Grupo Pereira',42]
+];
+
+// âââ SEMÃFORO TABLE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+function getRisco(d) {
+  const pct = d.concluidas / d.total;
+  const atRatio = d.atrasadas / d.total;
+  if (pct >= 0.55 && atRatio < 0.05) return { label:'Baixo', cls:'badge-verde', dot:'dot-verde' };
+  if (pct >= 0.40 || atRatio < 0.08) return { label:'MÃ©dio', cls:'badge-amarelo', dot:'dot-amarelo' };
+  return { label:'Alto', cls:'badge-vermelho', dot:'dot-vermelho' };
+}
+function getCardCls(d) {
+  const pct = d.concluidas / d.total;
+  if (pct >= 0.55) return 'verde';
+  if (pct >= 0.40) return 'amarelo';
+  return 'vermelho';
+}
+function getAvatarColor(name) { return RESP_COLORS[name] || '#64748b'; }
+function initials(name) { return name.split(' ').map(w=>w[0]).slice(0,2).join(''); }
+
+const tbody = document.getElementById('risco-tbody');
+Object.entries(RESP_DATA).forEach(([name, d]) => {
+  const pct = Math.round(d.concluidas / d.total * 100);
+  const risco = getRisco(d);
+  const color = RESP_COLORS[name];
+  const total = d.concluidas + d.aguardando + d.atrasadas + d.emAndamento + d.reprovadas;
+  const cPct = d.concluidas/total*100;
+  const aPct = d.aguardando/total*100;
+  const rPct = d.reprovadas/total*100;
+  const atPct = (d.atrasadas+d.emAndamento)/total*100;
+
+  tbody.innerHTML += `
+  <tr>
+    <td>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="background:${color}">${initials(name)}</div>
+        <div>
+          <div style="font-weight:700;font-size:13px">${name}</div>
+          <div style="font-size:11px;color:#94a3b8">${d.clientes} clientes</div>
+        </div>
+      </div>
+    </td>
+    <td><strong>${d.total}</strong></td>
+    <td><span style="color:#16a34a;font-weight:700">${d.concluidas}</span></td>
+    <td><span style="color:#d97706;font-weight:700">${d.aguardando}</span></td>
+    <td><span style="color:#dc2626;font-weight:700">${d.atrasadas}</span></td>
+    <td><span style="color:#7c3aed;font-weight:700">${d.reprovadas}</span></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="progress-bar" style="flex:1;min-width:80px"><div class="progress-fill fill-green" style="width:${pct}%"></div></div>
+        <span style="font-size:12px;font-weight:700;color:#16a34a">${pct}%</span>
+      </div>
+    </td>
+    <td style="min-width:140px">
+      <div class="stacked-bar">
+        <div class="stack-seg" style="width:${cPct.toFixed(1)}%;background:#22c55e" title="ConcluÃ­das: ${d.concluidas}"></div>
+        <div class="stack-seg" style="width:${aPct.toFixed(1)}%;background:#fbbf24" title="Aguardando: ${d.aguardando}"></div>
+        <div class="stack-seg" style="width:${atPct.toFixed(1)}%;background:#fb923c" title="Atrasadas/Check-in: ${d.atrasadas+d.emAndamento}"></div>
+        <div class="stack-seg" style="width:${rPct.toFixed(1)}%;background:#a855f7" title="Reprovadas: ${d.reprovadas}"></div>
+      </div>
+    </td>
+    <td>
+      <div class="semaforo">
+        <div class="semaforo-dot ${risco.dot}"></div>
+        <span class="status-badge ${risco.cls}">${risco.label}</span>
+      </div>
+    </td>
+  </tr>`;
+});
+
+// âââ RESP CARDS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const grid = document.getElementById('resp-grid');
+Object.entries(RESP_DATA).forEach(([name, d]) => {
+  const pct = Math.round(d.concluidas / d.total * 100);
+  const cls = getCardCls(d);
+  const color = RESP_COLORS[name];
+  const risco = getRisco(d);
+
+  const statusRows = Object.entries(d.statusBreakdown)
+    .sort((a,b)=>b[1]-a[1]).slice(0,4)
+    .map(([s, n]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f1f5f9;font-size:11px">
+        <span style="color:#374151">${s}</span>
+        <span style="font-weight:700;color:#1e293b">${n}</span>
+      </div>`).join('');
+
+  grid.innerHTML += `
+  <div class="resp-card ${cls}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="background:${color};width:36px;height:36px;font-size:14px">${initials(name)}</div>
+        <div>
+          <div class="resp-name">${name}</div>
+          <div class="resp-sub">${d.clientes} clientes Â· Semana 23â29/03</div>
+        </div>
+      </div>
+      <span class="status-badge ${risco.cls}">${risco.label} risco</span>
+    </div>
+
+    <div class="resp-metrics">
+      <div class="resp-metric"><div class="resp-metric-val" style="color:#1d4ed8">${d.total}</div><div class="resp-metric-lbl">Total</div></div>
+      <div class="resp-metric concluidas"><div class="resp-metric-val">${d.concluidas}</div><div class="resp-metric-lbl">ConcluÃ­das</div></div>
+      <div class="resp-metric atrasadas"><div class="resp-metric-val">${d.atrasadas}</div><div class="resp-metric-lbl">Atrasadas</div></div>
+      <div class="resp-metric reprovadas"><div class="resp-metric-val">${d.reprovadas}</div><div class="resp-metric-lbl">Reprovadas</div></div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Taxa de conclusÃ£o</span>
+        <span style="font-weight:700;color:#16a34a">${pct}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:${pct}%"></div></div>
+    </div>
+    <div class="progress-wrap" style="margin-top:8px">
+      <div class="progress-label">
+        <span>Pesquisas atrasadas</span>
+        <span style="font-weight:700;color:#dc2626">${Math.round(d.atrasadas/d.total*100)}%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill fill-red" style="width:${Math.min(d.atrasadas/d.total*100,100)}%"></div></div>
+    </div>
+
+    <div style="margin-top:14px;border-top:1px solid #f1f5f9;padding-top:10px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#94a3b8;margin-bottom:6px">Breakdown por status</div>
+      ${statusRows}
+    </div>
+  </div>`;
+});
+
+// âââ CHART: STACKED BAR ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const respNames = Object.keys(RESP_DATA);
+new Chart(document.getElementById('chartStacked'), {
+  type: 'bar',
+  data: {
+    labels: respNames.map(n => n.split(' ')[0] + ' ' + n.split(' ')[1]),
+    datasets: [
+      { label:'Auditado', data: respNames.map(n=>RESP_DATA[n].statusBreakdown['Auditado']||0), backgroundColor:'#22c55e', borderRadius:2 },
+      { label:'Realizado', data: respNames.map(n=>(RESP_DATA[n].statusBreakdown['Realizado']||0)+(RESP_DATA[n].statusBreakdown['Realizado Parcialmente']||0)), backgroundColor:'#84cc16', borderRadius:2 },
+      { label:'Check In', data: respNames.map(n=>RESP_DATA[n].statusBreakdown['Check In']||0), backgroundColor:'#f59e0b', borderRadius:2 },
+      { label:'Aguardando', data: respNames.map(n=>(RESP_DATA[n].statusBreakdown['Aguardando']||0)+(RESP_DATA[n].statusBreakdown['Aguardando LiberaÃ§Ã£o']||0)), backgroundColor:'#fbbf24', borderRadius:2 },
+      { label:'Reprovado', data: respNames.map(n=>RESP_DATA[n].statusBreakdown['Reprovado']||0), backgroundColor:'#a855f7', borderRadius:2 },
+    ]
+  },
+  options: {
+    responsive:true, maintainAspectRatio:true,
+    plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, padding:12 }}},
+    scales:{
+      x:{ stacked:true, grid:{display:false}, ticks:{font:{size:11}} },
+      y:{ stacked:true, grid:{color:'#f1f5f9'}, ticks:{font:{size:11}} }
+    }
+  }
+});
+
+// âââ CHART: DONUT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const donutCtx = document.getElementById('chartDonut');
+const donutColors = ['#22c55e','#84cc16','#f59e0b','#fbbf24','#a855f7','#fb923c','#94a3b8'];
+const donutLabels = Object.keys(STATUS_GLOBAL);
+const donutData = Object.values(STATUS_GLOBAL);
+new Chart(donutCtx, {
+  type:'doughnut',
+  data:{
+    labels: donutLabels,
+    datasets:[{ data: donutData, backgroundColor: donutColors, borderWidth:2, borderColor:'white' }]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:true, cutout:'64%',
+    plugins:{
+      legend:{display:false},
+      tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw/1719*100)}%)` }}
+    }
+  }
+});
+const legendEl = document.getElementById('legendDonut');
+donutLabels.forEach((l,i) => {
+  legendEl.innerHTML += `<div style="display:flex;align-items:center;gap:4px"><div style="width:10px;height:10px;border-radius:%0%;background:${donutColors[i]}"></div><span>${l}: <strong>${donutData[i]}</strong></span></div>`;
+});
+
+// âââ CHART: POR DIA ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+new Chart(document.getElementById('chartDia'), {
+  type:'bar',
+  data:{
+    labels:['Seg 23/03','Ter 24/03','Qua 25/03 (hoje)','Qui 26/03','Sex 27/03'],
+    datasets:[
+      { label:'Pesquisas', data:Object.values(BY_DIA),
+        backgroundColor:['#22c55e','#22c55e','#3b82f6','#fbbf24','#e2e8f0'],
+        borderRadius:8, borderSkipped:false }
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:true,
+    plugins:{
+      legend:{display:false},
+      tooltip:{ callbacks:{ label: ctx => ` ${ctx.raw} pesquisas` }}
+    },
+    scales:{
+      x:{grid:{display:false}, ticks:{font:{size:11}}},
+      y:{grid:{color:'#f1f5f9'}, ticks:{font:{size:11}}}
+    }
+  }
+});
+
+// âââ CHART: TOP CLIENTES âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+new Chart(document.getElementById('chartCliente'), {
+  type:'bar',
+  data:{
+    labels: TOP_CLIENTES.map(c=>c[0]),
+    datasets:[{
+      label:'Pesquisas',
+      data: TOP_CLIENTES.map(c=>c[1]),
+      backgroundColor: '#3b82f6',
+      borderRadius:6, borderSkipped:false
+    }]
+  },
+  options:{
+    indexAxis:'y', responsive:true, maintainAspectRatio:true,
+    plugins:{
+      legend:{display:false},
+      tooltip:{ callbacks:{ label: ctx => ` ${ctx.raw} pesquisas` }}
+    },
+    scales:{
+      x:{grid:{color:'#f1f5f9'}, ticks:{font:{size:11}}},
+      y:{grid:{display:false}, ticks:{font:{size:11}}}
+    }
+  }
+});
+</script>
+</body>
+</html>
