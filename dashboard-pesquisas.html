@@ -23,6 +23,28 @@
   .header-badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 20px; font-size: 13px; }
   .header-date { font-size: 12px; opacity: 0.6; margin-top: 3px; text-align: right; }
 
+  /* TABS */
+  .tab-bar { display: flex; gap: 0; background: #16213e; padding: 0 32px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .tab-btn { padding: 13px 24px; background: none; border: none; color: rgba(255,255,255,0.5); font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; letter-spacing: 0.3px; }
+  .tab-btn:hover { color: rgba(255,255,255,0.85); }
+  .tab-btn.active { color: white; border-bottom-color: #e94560; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* PRAZOS TAB */
+  .prazo-kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .prazo-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  .prazo-filter label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+  .risk-alto { background: #fee2e2; color: #991b1b; }
+  .risk-medio { background: #fef3c7; color: #92400e; }
+  .risk-baixo { background: #dcfce7; color: #166534; }
+  .risk-atencao { background: #ede9fe; color: #5b21b6; }
+  .risk-ok { background: #f1f5f9; color: #64748b; }
+  .prazo-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .tipo-diario { background: #fce7f3; color: #9d174d; }
+  .tipo-semanal { background: #dbeafe; color: #1e40af; }
+  .tipo-quinzenal { background: #f3f4f6; color: #374151; }
+
   /* LAYOUT */
   .container { max-width: 1400px; margin: 0 auto; padding: 24px 24px 40px; }
   .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin: 28px 0 14px; display: flex; align-items: center; gap: 8px; }
@@ -166,6 +188,13 @@
   </div>
 </div>
 
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" id="tab-btn-geral" onclick="switchTab('geral')">📊 Visão Geral</button>
+  <button class="tab-btn" id="tab-btn-prazos" onclick="switchTab('prazos')">📅 Prazos por Cliente</button>
+</div>
+
+<div id="tab-geral" class="tab-content active">
 <div class="container">
 
   <!-- KPIs GLOBAIS -->
@@ -348,6 +377,48 @@
   </div>
 
 </div><!-- /container -->
+</div><!-- /tab-geral -->
+
+<!-- TAB PRAZOS -->
+<div id="tab-prazos" class="tab-content">
+<div class="container">
+
+  <!-- KPIs de Prazo -->
+  <div class="section-title">Situação de Prazos — Hoje</div>
+  <div class="prazo-kpi-grid" id="prazo-kpis"></div>
+
+  <!-- Filtros -->
+  <div class="section-title" style="margin-top:28px">Controle de Prazos por Cliente</div>
+  <div class="card">
+    <div class="prazo-filter">
+      <label>Filtrar:</label>
+      <button class="filter-btn active" onclick="filtrarPrazos('todos')">Todos</button>
+      <button class="filter-btn" onclick="filtrarPrazos('alto')">🔴 Prazo Hoje</button>
+      <button class="filter-btn" onclick="filtrarPrazos('medio')">🟡 Prazo Amanhã</button>
+      <button class="filter-btn" onclick="filtrarPrazos('baixo')">🟢 Prazo na Semana</button>
+      <button class="filter-btn" onclick="filtrarPrazos('atencao')">🟣 Verificar</button>
+      <span style="margin-left:auto;font-size:12px;color:#64748b" id="prazo-count"></span>
+    </div>
+    <table class="data-table" id="prazo-table">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Responsável</th>
+          <th>Tipo de Prazo</th>
+          <th>Frequência</th>
+          <th>Status Hoje</th>
+        </tr>
+      </thead>
+      <tbody id="prazo-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Por Responsável -->
+  <div class="section-title">Prazos Críticos por Responsável</div>
+  <div class="grid-3" id="prazo-resp-grid"></div>
+
+</div><!-- /container prazos -->
+</div><!-- /tab-prazos -->
 
 <script>
 // ─── DATA ───────────────────────────────────────────────────────────────────
@@ -599,7 +670,7 @@ new Chart(document.getElementById('chartCliente'), {
       borderRadius:6, borderSkipped:false
     }]
   },
-  options: {
+  options:{
     indexAxis:'y', responsive:true, maintainAspectRatio:true,
     plugins:{
       legend:{display:false},
@@ -614,6 +685,206 @@ new Chart(document.getElementById('chartCliente'), {
 
 } // end initDashboard
 
+// ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('tab-btn-' + tab).classList.add('active');
+}
+
+// ─── PRAZOS DATA ──────────────────────────────────────────────────────────────
+const PRAZOS_DATA = [
+  // André Bezerra
+  { cliente:'Atakarejo',          resp:'André Bezerra',    prazo:'Diária em SE, até Quinta na BA',                        freq:'diario',     diasCrit:['diario'] },
+  { cliente:'Grupo Pão de Açúcar',resp:'André Bezerra',    prazo:'Segunda até 17h30, Quinta até 17h30',                   freq:'semanal',    diasCrit:['segunda','quinta'] },
+  { cliente:'Nordestão',          resp:'André Bezerra',    prazo:'Diária até 8h, restante até 14h30',                     freq:'diario',     diasCrit:['diario'] },
+  { cliente:'Nosso Atacarejo',    resp:'André Bezerra',    prazo:'Semanal fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Rede Mix',           resp:'André Bezerra',    prazo:'Semanal fixo até 14h, Mensal p/ Semana até Sexta',      freq:'semanal',    diasCrit:['sexta'] },
+  // Gabriela Prado
+  { cliente:'Armazém da Maria',   resp:'Gabriela Prado',   prazo:'Semanal Fixo até 12h',                                  freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Barbosa',            resp:'Gabriela Prado',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Gigante Atacadista', resp:'Gabriela Prado',   prazo:'Até Quarta-feira',                                      freq:'semanal',    diasCrit:['quarta'] },
+  { cliente:'Goodbom',            resp:'Gabriela Prado',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Grupo Pão de Açúcar',resp:'Gabriela Prado',   prazo:'Segunda até 17h30, Quinta até 17h30',                   freq:'semanal',    diasCrit:['segunda','quinta'] },
+  { cliente:'Grupo Pereira',      resp:'Gabriela Prado',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Lopes',              resp:'Gabriela Prado',   prazo:'Segunda (Guarulhos) até 16h, restante Terça até 16h',   freq:'semanal',    diasCrit:['segunda','terca'] },
+  { cliente:'Muffato',            resp:'Gabriela Prado',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Pague Menos',        resp:'Gabriela Prado',   prazo:'Até Sexta-feira',                                       freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'São Vicente',        resp:'Gabriela Prado',   prazo:'Segunda e Quarta 16h, Quinta 12h',                      freq:'semanal',    diasCrit:['quarta','quinta'] },
+  { cliente:'Savegnago',          resp:'Gabriela Prado',   prazo:'Semanal fixo até 14h',                                  freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Spani',              resp:'Gabriela Prado',   prazo:'Semanal até 16h Terça, FLV até 10h Terça',              freq:'semanal',    diasCrit:['terca'] },
+  { cliente:'Swift',              resp:'Gabriela Prado',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Vila Sul',           resp:'Gabriela Prado',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Vivo',               resp:'Gabriela Prado',   prazo:'Quinzenal',                                             freq:'quinzenal',  diasCrit:['sexta'] },
+  // Julia Alves
+  { cliente:'Armazém da Maria',   resp:'Julia Alves',      prazo:'Semanal Fixo até 12h',                                  freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Grupo Pão de Açúcar',resp:'Julia Alves',      prazo:'Segunda até 17h30, Quinta até 17h30',                   freq:'semanal',    diasCrit:['segunda','quinta'] },
+  { cliente:'Muffato',            resp:'Julia Alves',      prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Spani',              resp:'Julia Alves',      prazo:'Semanal até 16h Terça, FLV até 10h Terça',              freq:'semanal',    diasCrit:['terca'] },
+  { cliente:'Swift',              resp:'Julia Alves',      prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Vivo',               resp:'Julia Alves',      prazo:'Quinzenal',                                             freq:'quinzenal',  diasCrit:['sexta'] },
+  // Luiz Felipe Paiva
+  { cliente:'Cooper',             resp:'Luiz Felipe Paiva',prazo:'Semanal até Quarta',                                    freq:'semanal',    diasCrit:['quarta'] },
+  { cliente:'De Angelina',        resp:'Luiz Felipe Paiva',prazo:'Semanal (Quarta) + Mensal',                             freq:'semanal',    diasCrit:['quarta'] },
+  { cliente:'Grupo Coutinho',     resp:'Luiz Felipe Paiva',prazo:'1ª e 2ª idas (cronograma) + Mensal',                   freq:'cronograma', diasCrit:['sexta'] },
+  { cliente:'Big Mart',           resp:'Luiz Felipe Paiva',prazo:'Sexta-feira',                                           freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Grupo Pão de Açúcar',resp:'Luiz Felipe Paiva',prazo:'Segunda até 17h30, Quinta até 17h30',                  freq:'semanal',    diasCrit:['segunda','quinta'] },
+  { cliente:'Grupo Pereira',      resp:'Luiz Felipe Paiva',prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Líder Atacadista',   resp:'Luiz Felipe Paiva',prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Master',             resp:'Luiz Felipe Paiva',prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Pague Menos',        resp:'Luiz Felipe Paiva',prazo:'Até Sexta-feira',                                       freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Rede Krill',         resp:'Luiz Felipe Paiva',prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Shibata',            resp:'Luiz Felipe Paiva',prazo:'Até Sexta-feira',                                       freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Spani',              resp:'Luiz Felipe Paiva',prazo:'Semanal até 16h Terça, FLV até 10h Terça',             freq:'semanal',    diasCrit:['terca'] },
+  { cliente:'Swift',              resp:'Luiz Felipe Paiva',prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Vivo',               resp:'Luiz Felipe Paiva',prazo:'Quinzenal',                                             freq:'quinzenal',  diasCrit:['sexta'] },
+  { cliente:'Zaffari',            resp:'Luiz Felipe Paiva',prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  // Nicole Parolin
+  { cliente:'Barbosa',            resp:'Nicole Parolin',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Grupo Pão de Açúcar',resp:'Nicole Parolin',   prazo:'Segunda até 17h30, Quinta até 17h30',                   freq:'semanal',    diasCrit:['segunda','quinta'] },
+  { cliente:'Grupo Pereira',      resp:'Nicole Parolin',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Lopes',              resp:'Nicole Parolin',   prazo:'Segunda (Guarulhos) até 16h, restante Terça até 16h',   freq:'semanal',    diasCrit:['segunda','terca'] },
+  { cliente:'Master',             resp:'Nicole Parolin',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Muffato',            resp:'Nicole Parolin',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'São Vicente',        resp:'Nicole Parolin',   prazo:'Segunda e Quarta 16h, Quinta 12h',                      freq:'semanal',    diasCrit:['quarta','quinta'] },
+  { cliente:'Shibata',            resp:'Nicole Parolin',   prazo:'Até Sexta-feira',                                       freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Spani',              resp:'Nicole Parolin',   prazo:'Semanal até 16h Terça, FLV até 10h Terça',              freq:'semanal',    diasCrit:['terca'] },
+  { cliente:'Swift',              resp:'Nicole Parolin',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Vivo',               resp:'Nicole Parolin',   prazo:'Quinzenal',                                             freq:'quinzenal',  diasCrit:['sexta'] },
+  { cliente:'Zaffari',            resp:'Nicole Parolin',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  // Mariana Dantas
+  { cliente:'Atakarejo',          resp:'Mariana Dantas',   prazo:'Diária em SE, até Quinta na BA',                        freq:'diario',     diasCrit:['diario'] },
+  { cliente:'Big Mart',           resp:'Mariana Dantas',   prazo:'Sexta-feira',                                           freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Gmais',              resp:'Mariana Dantas',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Grupo Pão de Açúcar',resp:'Mariana Dantas',   prazo:'Segunda até 17h30, Quinta até 17h30',                   freq:'semanal',    diasCrit:['segunda','quinta'] },
+  { cliente:'Grupo Pereira',      resp:'Mariana Dantas',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Prefeitura Curitiba',resp:'Mariana Dantas',   prazo:'Diária Fixo',                                           freq:'diario',     diasCrit:['diario'] },
+  { cliente:'São Luis',           resp:'Mariana Dantas',   prazo:'Semanal Fixo até 16h',                                  freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Spani',              resp:'Mariana Dantas',   prazo:'Semanal até 16h Terça, FLV até 10h Terça',              freq:'semanal',    diasCrit:['terca'] },
+  { cliente:'Super do Povo',      resp:'Mariana Dantas',   prazo:'Semanal Fixo até 16h',                                  freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Swift',              resp:'Mariana Dantas',   prazo:'Semanal Fixo',                                          freq:'semanal',    diasCrit:['sexta'] },
+  { cliente:'Vivo',               resp:'Mariana Dantas',   prazo:'Quinzenal',                                             freq:'quinzenal',  diasCrit:['sexta'] },
+  { cliente:'Zona Sul',           resp:'Mariana Dantas',   prazo:'Segunda e Quinta até 14h / Terça até 15h',              freq:'semanal',    diasCrit:['segunda','quinta'] },
+];
+
+// ─── RISK CALCULATION ────────────────────────────────────────────────────────
+function calcRisco(diasCrit) {
+  const dow = new Date().getDay(); // 0=Dom,1=Seg,2=Ter,3=Qua,4=Qui,5=Sex,6=Sab
+  const MAP = { diario:null, segunda:1, terca:2, quarta:3, quinta:4, sexta:5 };
+  if (diasCrit.includes('diario')) return 'alto';
+  const nums = diasCrit.map(d => MAP[d]).filter(n => n !== undefined);
+  if (!nums.length) return 'baixo';
+  const mindow = Math.min(...nums);
+  const maxdow = Math.max(...nums);
+  if (nums.includes(dow)) return 'alto';           // prazo é HOJE
+  if (nums.includes(dow + 1)) return 'medio';      // prazo é AMANHÃ
+  if (maxdow < dow) return 'atencao';              // prazo já passou esta semana
+  return 'baixo';                                  // prazo ainda está longe
+}
+function riscoBadge(r) {
+  const map = {
+    alto:    { cls:'risk-alto',    dot:'🔴', txt:'Prazo Hoje' },
+    medio:   { cls:'risk-medio',  dot:'🟡', txt:'Prazo Amanhã' },
+    baixo:   { cls:'risk-baixo',  dot:'🟢', txt:'Na Semana' },
+    atencao: { cls:'risk-atencao',dot:'🟣', txt:'Verificar' },
+  };
+  const m = map[r] || map.baixo;
+  return `<span class="prazo-tag ${m.cls}">${m.dot} ${m.txt}</span>`;
+}
+function freqBadge(f) {
+  const map = { diario:'tipo-diario', semanal:'tipo-semanal', quinzenal:'tipo-quinzenal', cronograma:'tipo-quinzenal' };
+  const labels = { diario:'Diário', semanal:'Semanal', quinzenal:'Quinzenal', cronograma:'Cronograma' };
+  return `<span class="prazo-tag ${map[f]||'tipo-semanal'}">${labels[f]||f}</span>`;
+}
+
+// ─── RENDER PRAZOS ───────────────────────────────────────────────────────────
+let _prazoFiltro = 'todos';
+function renderPrazos(filtro) {
+  _prazoFiltro = filtro || _prazoFiltro;
+  const dados = PRAZOS_DATA.map(p => ({ ...p, risco: calcRisco(p.diasCrit) }));
+  const filtered = _prazoFiltro === 'todos' ? dados : dados.filter(p => p.risco === _prazoFiltro);
+
+  // KPIs
+  const alto   = dados.filter(p => p.risco === 'alto').length;
+  const medio  = dados.filter(p => p.risco === 'medio').length;
+  const baixo  = dados.filter(p => p.risco === 'baixo').length;
+  const atenc  = dados.filter(p => p.risco === 'atencao').length;
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sab'];
+  const hoje = dias[new Date().getDay()];
+  document.getElementById('prazo-kpis').innerHTML = `
+    <div class="kpi-card kpi-blue"><div class="kpi-label">Total Clientes</div><div class="kpi-value">${dados.length}</div><div class="kpi-sub">com prazo contratual</div></div>
+    <div class="kpi-card kpi-red"><div class="kpi-label">🔴 Prazo Hoje (${hoje})</div><div class="kpi-value" style="color:#dc2626">${alto}</div><div class="kpi-sub">entregas críticas agora</div></div>
+    <div class="kpi-card kpi-yellow"><div class="kpi-label">🟡 Prazo Amanhã</div><div class="kpi-value" style="color:#d97706">${medio}</div><div class="kpi-sub">atenção nas próximas 24h</div></div>
+    <div class="kpi-card kpi-green"><div class="kpi-label">🟢 Na Semana</div><div class="kpi-value" style="color:#16a34a">${baixo}</div><div class="kpi-sub">dentro do prazo normal</div></div>
+    <div class="kpi-card kpi-purple"><div class="kpi-label">🟣 Verificar</div><div class="kpi-value" style="color:#7c3aed">${atenc}</div><div class="kpi-sub">prazo passou — confirmar</div></div>
+  `;
+
+  // Tabela
+  document.getElementById('prazo-count').textContent = `${filtered.length} cliente(s)`;
+  document.getElementById('prazo-tbody').innerHTML = filtered
+    .sort((a,b) => {
+      const order = { alto:0, atencao:1, medio:2, baixo:3 };
+      return (order[a.risco]||9) - (order[b.risco]||9) || a.resp.localeCompare(b.resp);
+    })
+    .map(p => {
+      const color = RESP_COLORS[p.resp] || '#64748b';
+      const init = p.resp.split(' ').map(w=>w[0]).slice(0,2).join('');
+      return `<tr>
+        <td><strong>${p.cliente}</strong></td>
+        <td><div style="display:flex;align-items:center;gap:8px">
+          <div class="avatar" style="background:${color};width:26px;height:26px;font-size:10px">${init}</div>
+          <span style="font-size:13px">${p.resp}</span>
+        </div></td>
+        <td style="font-size:12px;color:#374151;max-width:280px">${p.prazo}</td>
+        <td>${freqBadge(p.freq)}</td>
+        <td>${riscoBadge(p.risco)}</td>
+      </tr>`;
+    }).join('');
+
+  // Cards por responsável (só prazos hoje/amanhã)
+  const respGrid = document.getElementById('prazo-resp-grid');
+  const criticos = dados.filter(p => p.risco === 'alto' || p.risco === 'medio');
+  const byResp = {};
+  criticos.forEach(p => {
+    if (!byResp[p.resp]) byResp[p.resp] = [];
+    byResp[p.resp].push(p);
+  });
+  if (Object.keys(byResp).length === 0) {
+    respGrid.innerHTML = `<div class="card" style="grid-column:1/-1;text-align:center;color:#16a34a;padding:32px">
+      <div style="font-size:32px">✅</div><div style="font-size:16px;font-weight:700;margin-top:8px">Nenhum prazo crítico hoje ou amanhã!</div>
+    </div>`;
+  } else {
+    respGrid.innerHTML = Object.entries(byResp).map(([resp, prazos]) => {
+      const color = RESP_COLORS[resp] || '#64748b';
+      const init = resp.split(' ').map(w=>w[0]).slice(0,2).join('');
+      const altosR = prazos.filter(p=>p.risco==='alto');
+      const mediosR = prazos.filter(p=>p.risco==='medio');
+      const rows = prazos.sort((a,b)=>(a.risco==='alto'?0:1)-(b.risco==='alto'?0:1))
+        .map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:12px">
+          <span style="color:#374151;font-weight:600">${p.cliente}</span>
+          ${riscoBadge(p.risco)}
+        </div>`).join('');
+      return `<div class="card" style="border-top:3px solid ${color}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div class="avatar" style="background:${color};width:34px;height:34px;font-size:13px">${init}</div>
+          <div>
+            <div style="font-weight:700;font-size:14px">${resp}</div>
+            <div style="font-size:11px;color:#94a3b8">${altosR.length} hoje · ${mediosR.length} amanhã</div>
+          </div>
+        </div>
+        ${rows}
+      </div>`;
+    }).join('');
+  }
+}
+
+function filtrarPrazos(filtro) {
+  document.querySelectorAll('#tab-prazos .filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderPrazos(filtro);
+}
+
 // ─── LOAD DATA (data.json se disponível, fallback nos dados embutidos) ────────
 fetch('data.json?v=' + Date.now())
   .then(r => { if (!r.ok) throw new Error('no data.json'); return r.json(); })
@@ -625,8 +896,9 @@ fetch('data.json?v=' + Date.now())
     const el = document.getElementById('last-updated');
     if (el && data.lastUpdated) el.textContent = 'Atualizado em ' + data.lastUpdated;
     initDashboard();
+    renderPrazos();
   })
-  .catch(() => initDashboard()); // fallback: usa dados embutidos
+  .catch(() => { initDashboard(); renderPrazos(); }); // fallback: usa dados embutidos
 </script>
 </body>
 </html>
