@@ -1,0 +1,21 @@
+{
+  "lastUpdated": "25/03/2026",
+  "totalPesquisas": 1719,
+  "respData": {
+    "André Bezerra":    { "total":468, "concluidas":201, "aguardando":212, "atrasadas":20, "emAndamento":18, "reprovadas":37, "clientes":9,  "statusBreakdown":{ "Auditado":144, "Realizado":53, "Realizado Parcialmente":4, "Check In":18, "Aguardando":211, "Aguardando Liberação":1, "Reprovado":37 } },
+    "Julia Alves":      { "total":239, "concluidas":104, "aguardando":104, "atrasadas":10, "emAndamento":7,  "reprovadas":24, "clientes":6,  "statusBreakdown":{ "Auditado":93,  "Realizado":11, "Check In":7, "Aguardando":104, "Reprovado":24 } },
+    "Luiz Felipe Paiva":{ "total":197, "concluidas":90,  "aguardando":85,  "atrasadas":9,  "emAndamento":7,  "reprovadas":15, "clientes":14, "statusBreakdown":{ "Auditado":60,  "Realizado":29, "Realizado Parcialmente":1, "Check In":7, "Aguardando":80, "Aguardando Liberação":5, "Reprovado":15 } },
+    "Mariana Dantas":   { "total":334, "concluidas":150, "aguardando":159, "atrasadas":10, "emAndamento":7,  "reprovadas":18, "clientes":13, "statusBreakdown":{ "Auditado":115, "Realizado":30, "Realizado Parcialmente":5, "Check In":7, "Aguardando":156,"Aguardando Liberação":3, "Reprovado":18 } },
+    "Gabriela Prado":   { "total":238, "concluidas":126, "aguardando":95,  "atrasadas":11, "emAndamento":9,  "reprovadas":8,  "clientes":10, "statusBreakdown":{ "Auditado":109, "Realizado":14, "Realizado Parcialmente":3, "Check In":9, "Aguardando":95,  "Reprovado":8 } },
+    "Nicole Parolin":   { "total":243, "concluidas":114, "aguardando":97,  "atrasadas":3,  "emAndamento":6,  "reprovadas":26, "clientes":13, "statusBreakdown":{ "Auditado":103, "Realizado":8,  "Realizado Parcialmente":3, "Check In":6, "Aguardando":93,  "Aguardando Liberação":4, "Reprovado":26 } }
+  },
+  "statusGlobal": {
+    "Auditado": 624, "Realizado": 145, "Check In": 54,
+    "Aguardando": 739, "Reprovado": 128, "Realizado Parcialmente": 16, "Aguardando Liberação": 13
+  },
+  "byDia": { "23/03":605, "24/03":458, "25/03":312, "26/03":239, "27/03":105 },
+  "topClientes": [
+    ["Atakarejo",241],["Nordestão",202],["Muffato",185],["Grupo Pão de Açúcar",112],
+    ["Spani",96],["Swift",88],["Lopes",72],["Barbosa",55],["São Vicente",48],["Grupo Pereira",42]
+  ]
+}
