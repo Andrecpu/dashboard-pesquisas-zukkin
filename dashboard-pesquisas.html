@@ -190,6 +190,7 @@
   <button class="tab-btn" id="tab-btn-prazos" onclick="switchTab('prazos')">📅 Prazos por Cliente</button>
   <button class="tab-btn" id="tab-btn-previsao" onclick="switchTab('previsao')">🔮 Previsão de Atrasos</button>
   <button class="tab-btn" id="tab-btn-sobre" onclick="switchTab('sobre')">💡 Como Funciona</button>
+  <button class="tab-btn" id="tab-btn-ritmo" onclick="switchTab('ritmo')">📈 Ritmo de Entrega</button>
 </div>
 <div id="tab-geral" class="tab-content active">
 <div class="container">
@@ -922,6 +923,486 @@
 </div><!-- /container sobre -->
 </div><!-- /tab-sobre -->
 
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- TAB RITMO DE ENTREGA                                          -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="tab-ritmo" class="tab-content">
+<style>
+/* ── RITMO TAB ───────────────────────────────────────────────── */
+.ritmo-header {
+  background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+  padding: 22px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.ritmo-header-title { color: white; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+.ritmo-header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.agora-badge {
+  background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.4);
+  color: #86efac; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+}
+.agora-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; display: inline-block; }
+.ritmo-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: rgba(255,255,255,0.65); }
+.ritmo-legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+/* COMPARATIVO GERAL */
+.comp-card { background: white; border-radius: 14px; padding: 22px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 16px; }
+.comp-card-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+/* RESP FILTER */
+.ritmo-resp-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.ritmo-resp-btn {
+  padding: 7px 18px; border-radius: 20px; border: none; cursor: pointer;
+  font-size: 12px; font-weight: 700; background: #f1f5f9; color: #64748b;
+  transition: all 0.18s;
+}
+.ritmo-resp-btn.active { color: white; }
+.ritmo-resp-btn:hover { opacity: 0.85; }
+/* DETAIL CHARTS */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.detail-card { background: white; border-radius: 14px; padding: 20px 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.detail-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+.detail-avatar { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: white; flex-shrink: 0; }
+.detail-name-block { flex: 1; }
+.detail-name { font-size: 14px; font-weight: 800; color: #1e293b; }
+.detail-peak { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.detail-kpis { display: flex; gap: 12px; }
+.dkpi { text-align: center; }
+.dkpi-val { font-size: 22px; font-weight: 900; line-height: 1; }
+.dkpi-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-top: 2px; }
+.dkpi-delta-pos { color: #16a34a; }
+.dkpi-delta-neg { color: #dc2626; }
+.status-tag { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+.status-tag.ok       { background: #dcfce7; color: #166534; }
+.status-tag.atras    { background: #fee2e2; color: #991b1b; }
+.status-tag.antecip  { background: #dbeafe; color: #1e40af; }
+/* HOUR BADGES */
+.hour-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 10px; }
+.hbadge {
+  min-width: 36px; text-align: center; padding: 3px 5px; border-radius: 6px;
+  font-size: 10px; font-weight: 700;
+}
+.hbadge.pos { background: #dcfce7; color: #166534; }
+.hbadge.neg { background: #fee2e2; color: #991b1b; }
+.hbadge.zero{ background: #f1f5f9; color: #94a3b8; }
+.hbadge.fut { background: #f0f9ff; color: #0369a1; font-style: italic; }
+.hbadge-lbl { font-size: 9px; color: #94a3b8; font-weight: 600; display: block; }
+/* SUMMARY STRIP */
+.summary-strip { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; margin-bottom: 16px; }
+.strip-card { background: white; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid; }
+.strip-name { font-size: 11px; font-weight: 800; color: #374151; margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.strip-vals { display: flex; gap: 8px; align-items: baseline; }
+.strip-plan { font-size: 18px; font-weight: 900; color: #94a3b8; }
+.strip-real { font-size: 18px; font-weight: 900; }
+.strip-pct  { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+</style>
+
+<!-- HEADER -->
+<div class="ritmo-header">
+  <div class="ritmo-header-title">📈 COMPARATIVO GERAL — PLANEJADO VS REALIZADO POR RESPONSÁVEL</div>
+  <div class="ritmo-header-right">
+    <div class="agora-badge" id="ritmo-agora-badge">Agora: --h · horas passadas = realizado, futuras = planejado</div>
+    <div class="ritmo-legend-item"><div class="ritmo-legend-dot" style="background:#cbd5e1"></div> Planejado (total dia)</div>
+    <div class="ritmo-legend-item"><div class="ritmo-legend-dot" style="background:#3b82f6"></div> Realizado (até agora)</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- STRIP RESUMO RÁPIDO -->
+  <div class="section-title">Resumo por Responsável</div>
+  <div class="summary-strip" id="ritmo-strip"></div>
+
+  <!-- COMPARATIVO GERAL CHART -->
+  <div class="comp-card">
+    <div class="comp-card-title">
+      <span>Planejado vs Realizado — Visão Geral da Semana</span>
+      <div style="display:flex;gap:16px;font-size:11px;font-weight:600;color:#94a3b8">
+        <span>▪ Cinza = Planejado total</span>
+        <span>▪ Colorido = Realizado até agora</span>
+      </div>
+    </div>
+    <canvas id="ritmo-comp-chart" height="90"></canvas>
+  </div>
+
+  <!-- DETALHAMENTO POR HORA — TODOS OS RESPONSÁVEIS -->
+  <div class="section-title">Detalhamento por Hora · Planejado vs Realizado vs Diferença</div>
+  <p style="font-size:12px;color:#94a3b8;margin-bottom:16px;margin-top:-8px">
+    Barras cinzas = planejado · Barras coloridas = realizado (entregues) · Linha = diferença · Itálico nos badges = horários futuros planejados
+  </p>
+
+  <!-- FILTER BY RESP -->
+  <div class="ritmo-resp-tabs" id="ritmo-resp-tabs"></div>
+
+  <!-- DETAIL AREA -->
+  <div id="ritmo-detail-area"></div>
+
+</div>
+</div><!-- /tab-ritmo -->
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// RITMO DE ENTREGA — ENGINE
+// ══════════════════════════════════════════════════════════════════
+
+// Normalize full resp name → short key
+function ritmNormResp(fullName) {
+  if (!fullName) return null;
+  const n = fullName.toLowerCase();
+  if (n.includes('andr'))    return 'André Bezerra';
+  if (n.includes('gabriela')) return 'Gabriela Prado';
+  if (n.includes('julia') || n.includes('júlia')) return 'Julia Alves';
+  if (n.includes('luiz'))    return 'Luiz Felipe Paiva';
+  if (n.includes('mariana')) return 'Mariana Dantas';
+  if (n.includes('nicole'))  return 'Nicole Parolin';
+  return null;
+}
+
+const RITMO_HOURS = [7,8,9,10,11,12,13,14,15,16,17,18];
+const RITMO_RESP_ORDER = ['André Bezerra','Gabriela Prado','Julia Alves','Luiz Felipe Paiva','Mariana Dantas','Nicole Parolin'];
+const RITMO_RESP_INITIALS = {'André Bezerra':'AB','Gabriela Prado':'GP','Julia Alves':'JA','Luiz Felipe Paiva':'LF','Mariana Dantas':'MD','Nicole Parolin':'NP'};
+
+// ─── Compute hourly data for each responsável ────────────────────
+function computeRitmoHourly() {
+  // Group PREV_HOR by resp (short name), then by hour
+  const byResp = {};
+  RITMO_RESP_ORDER.forEach(r => { byResp[r] = { entries:[], byHour:{} }; RITMO_HOURS.forEach(h => byResp[r].byHour[h] = []); });
+
+  PREV_HOR.forEach(e => {
+    const resp = ritmNormResp(e.resp);
+    if (!resp || !byResp[resp]) return;
+    const t = e.entrada_sem;
+    if (!t || t === '--' || t === '00:00') return;
+    const h = parseInt(t.split(':')[0]);
+    if (h >= 7 && h <= 18) {
+      byResp[resp].byHour[h].push(e);
+      byResp[resp].entries.push({ ...e, hour: h });
+    }
+  });
+
+  return byResp;
+}
+
+// ─── Build planned distribution (bell curve around 12h) ──────────
+// Scale to total pesquisas for resp, normalized so sum ≈ total
+function buildPlanned(respName, byRespData) {
+  const rd = RESP_DATA[respName];
+  if (!rd) return {};
+  const total = rd.total;
+
+  // Use distribution of ALL PREV_HOR entries (regardless of resp) as shape
+  const shape = {};
+  RITMO_HOURS.forEach(h => shape[h] = 0);
+  PREV_HOR.forEach(e => {
+    const t = e.entrada_sem;
+    if (!t || t === '--' || t === '00:00') return;
+    const h = parseInt(t.split(':')[0]);
+    if (h >= 7 && h <= 18) shape[h]++;
+  });
+  const shapeTotal = Object.values(shape).reduce((a,b)=>a+b, 0) || 1;
+  const planned = {};
+  RITMO_HOURS.forEach(h => { planned[h] = Math.round((shape[h]/shapeTotal) * total); });
+  return planned;
+}
+
+// ─── Find peak hours ─────────────────────────────────────────────
+function findPeakHours(byHour) {
+  let maxCount = 0;
+  RITMO_HOURS.forEach(h => { if (byHour[h].length > maxCount) maxCount = byHour[h].length; });
+  const peaks = RITMO_HOURS.filter(h => byHour[h].length === maxCount && maxCount > 0);
+  if (peaks.length === 0) return 'Sem dados ainda';
+  if (peaks.length === 1) return `${peaks[0]}h`;
+  return `${peaks[0]}h–${peaks[peaks.length-1]}h`;
+}
+
+// ─── Render main comparative chart ──────────────────────────────
+let ritmoCompChart = null;
+function renderRitmoCompChart() {
+  const ctx = document.getElementById('ritmo-comp-chart');
+  if (!ctx) return;
+  if (ritmoCompChart) { ritmoCompChart.destroy(); ritmoCompChart = null; }
+
+  const labels = RITMO_RESP_ORDER;
+  const planned = labels.map(r => RESP_DATA[r]?.total || 0);
+  const realized = labels.map(r => (RESP_DATA[r]?.concluidas || 0) + (RESP_DATA[r]?.emAndamento || 0));
+  const colors = labels.map(r => RESP_COLORS[r] || '#94a3b8');
+
+  ritmoCompChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Planejado (total dia)',
+          data: planned,
+          backgroundColor: '#e2e8f0',
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Realizado (até agora)',
+          data: realized,
+          backgroundColor: colors,
+          borderRadius: 6,
+          borderSkipped: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12, weight: '600' }, padding: 16 } },
+        tooltip: {
+          callbacks: {
+            afterLabel(ctx2) {
+              if (ctx2.datasetIndex === 1) {
+                const resp = ctx2.label;
+                const plan = RESP_DATA[resp]?.total || 1;
+                const real = ctx2.raw;
+                return `${Math.round(real/plan*100)}% do planejado`;
+              }
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 13, weight: '700' } } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ─── Render strip ────────────────────────────────────────────────
+function renderRitmoStrip() {
+  const el = document.getElementById('ritmo-strip');
+  if (!el) return;
+  el.innerHTML = RITMO_RESP_ORDER.map(r => {
+    const rd = RESP_DATA[r];
+    if (!rd) return '';
+    const plan = rd.total;
+    const real = rd.concluidas + rd.emAndamento;
+    const pct = Math.round(real/plan*100);
+    const color = RESP_COLORS[r] || '#94a3b8';
+    const pctColor = pct >= 80 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
+    const pctBg   = pct >= 80 ? '#dcfce7' : pct >= 50 ? '#fef3c7' : '#fee2e2';
+    const shortName = r.split(' ')[0] + ' ' + r.split(' ')[r.split(' ').length-1];
+    return `<div class="strip-card" style="border-color:${color}">
+      <div class="strip-name" title="${r}">${r}</div>
+      <div class="strip-vals">
+        <div class="strip-plan" title="Planejado">${plan}</div>
+        <div style="font-size:14px;color:#cbd5e1;font-weight:700">/</div>
+        <div class="strip-real" style="color:${color}" title="Realizado">${real}</div>
+        <div class="strip-pct" style="background:${pctBg};color:${pctColor}">${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Render hourly detail charts ─────────────────────────────────
+const ritmoDetailCharts = {};
+function renderRitmoDetail(respName) {
+  const el = document.getElementById('ritmo-detail-area');
+  if (!el) return;
+
+  const byRespData = computeRitmoHourly();
+  const respsToShow = respName === 'todos' ? RITMO_RESP_ORDER : [respName];
+
+  // Destroy old charts
+  Object.keys(ritmoDetailCharts).forEach(k => { if (ritmoDetailCharts[k]) { ritmoDetailCharts[k].destroy(); delete ritmoDetailCharts[k]; } });
+
+  el.innerHTML = `<div style="display:grid;grid-template-columns:${respsToShow.length === 1 ? '1fr' : '1fr 1fr'};gap:14px">` +
+    respsToShow.map(r => buildDetailCardHTML(r, byRespData[r])).join('') + '</div>';
+
+  // Render each chart after DOM is ready
+  respsToShow.forEach(r => {
+    setTimeout(() => renderDetailChart(r, byRespData[r]), 30);
+  });
+}
+
+function buildDetailCardHTML(respName, respData) {
+  const rd = RESP_DATA[respName];
+  const plan = rd?.total || 0;
+  const real = rd?.concluidas || 0;
+  const inProg = rd?.emAndamento || 0;
+  const totalReal = real + inProg;
+  const delta = totalReal - plan;
+  const pct = Math.round(totalReal / Math.max(plan,1) * 100);
+  const color = RESP_COLORS[respName] || '#94a3b8';
+  const initials = RITMO_RESP_INITIALS[respName] || '??';
+  const peak = respData ? findPeakHours(respData.byHour) : '--';
+  const statusLabel = delta >= 0 ? 'No plano' : 'Atrás do plano';
+  const statusClass = delta >= 0 ? 'ok' : 'atras';
+  const deltaDisplay = delta >= 0 ? `+${delta}` : `${delta}`;
+  const deltaClass = delta >= 0 ? 'dkpi-delta-pos' : 'dkpi-delta-neg';
+
+  // Build hour badges
+  const nowH = new Date().getHours();
+  const plannedDist = buildPlanned(respName, respData);
+  const badgesHTML = RITMO_HOURS.map(h => {
+    const planH = plannedDist[h] || 0;
+    const realH = respData ? respData.byHour[h].length : 0;
+    const diff = realH - planH;
+    const isFuture = h > nowH;
+    if (isFuture) return `<div><div class="hbadge-lbl">${h}h</div><div class="hbadge fut">~${planH > 0 ? '-'+planH : '0'}</div></div>`;
+    if (diff > 0) return `<div><div class="hbadge-lbl">${h}h</div><div class="hbadge pos">+${diff}</div></div>`;
+    if (diff < 0) return `<div><div class="hbadge-lbl">${h}h</div><div class="hbadge neg">${diff}</div></div>`;
+    return `<div><div class="hbadge-lbl">${h}h</div><div class="hbadge zero">0</div></div>`;
+  }).join('');
+
+  return `
+  <div class="detail-card" id="card-${respName.replace(/ /g,'-')}">
+    <div class="detail-header">
+      <div style="display:flex;align-items:center;gap:12px;flex:1">
+        <div class="detail-avatar" style="background:${color}">${initials}</div>
+        <div class="detail-name-block">
+          <div class="detail-name">${respName}</div>
+          <div class="detail-peak">Pico de entregas: ${peak}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div class="dkpi"><div class="dkpi-val" style="color:#94a3b8">${plan}</div><div class="dkpi-lbl">Planejado</div></div>
+        <div class="dkpi"><div class="dkpi-val" style="color:${color}">${totalReal}</div><div class="dkpi-lbl">Realizado</div></div>
+        <div class="dkpi"><div class="dkpi-val ${deltaClass}">${deltaDisplay}</div><div class="dkpi-lbl">Delta</div></div>
+        <div class="dkpi"><div class="dkpi-val" style="color:${pct>=80?'#16a34a':pct>=50?'#d97706':'#dc2626'}">${pct}%</div><div class="dkpi-lbl">VS Plano</div></div>
+        <div class="status-tag ${statusClass}">${statusLabel}</div>
+      </div>
+    </div>
+    <canvas id="chart-${respName.replace(/ /g,'-')}" height="${respName === 'todos' ? 110 : 130}"></canvas>
+    <div class="hour-badges" style="margin-top:8px">${badgesHTML}</div>
+  </div>`;
+}
+
+function renderDetailChart(respName, respData) {
+  const canvasId = `chart-${respName.replace(/ /g,'-')}`;
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  const color = RESP_COLORS[respName] || '#3b82f6';
+  const plannedDist = buildPlanned(respName, respData);
+  const nowH = new Date().getHours();
+
+  const plannedArr = RITMO_HOURS.map(h => plannedDist[h] || 0);
+  const realizedArr = RITMO_HOURS.map(h => {
+    if (!respData) return 0;
+    return h <= nowH ? respData.byHour[h].length : null;
+  });
+  const diffArr = RITMO_HOURS.map((h,i) => {
+    if (h > nowH || !respData) return null;
+    return (respData.byHour[h].length || 0) - (plannedArr[i] || 0);
+  });
+
+  ritmoDetailCharts[respName] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: RITMO_HOURS.map(h => `${h}h`),
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Planejado',
+          data: plannedArr,
+          backgroundColor: '#e2e8f0',
+          borderRadius: 4,
+          order: 3,
+        },
+        {
+          type: 'bar',
+          label: 'Realizado',
+          data: realizedArr,
+          backgroundColor: color,
+          borderRadius: 4,
+          order: 2,
+        },
+        {
+          type: 'line',
+          label: 'Diferença (real - plano)',
+          data: diffArr,
+          borderColor: '#94a3b8',
+          backgroundColor: 'transparent',
+          pointBackgroundColor: diffArr.map(v => v === null ? 'transparent' : v >= 0 ? '#22c55e' : '#ef4444'),
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 1.5,
+          borderDash: [4,3],
+          order: 1,
+          spanGaps: false,
+          yAxisID: 'yDiff',
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11, weight: '600' }, padding: 12, boxWidth: 14 } },
+        tooltip: {
+          callbacks: {
+            afterBody(items) {
+              const h = RITMO_HOURS[items[0].dataIndex];
+              return h <= nowH ? '' : '(horário futuro)';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' } } },
+        y: {
+          position: 'left', beginAtZero: true, grid: { color: '#f1f5f9' },
+          ticks: { font: { size: 10 }, stepSize: 1 },
+          title: { display: true, text: 'Pesquisas', font: { size: 10 }, color: '#94a3b8' }
+        },
+        yDiff: {
+          position: 'right', grid: { display: false },
+          ticks: { font: { size: 10 } },
+          title: { display: true, text: 'Δ', font: { size: 10 }, color: '#94a3b8' }
+        }
+      }
+    }
+  });
+}
+
+// ─── Resp filter buttons ─────────────────────────────────────────
+function buildRitmoRespTabs() {
+  const el = document.getElementById('ritmo-resp-tabs');
+  if (!el) return;
+  const opts = [{ key: 'todos', label: '📊 Todos', color: '#64748b' },
+    ...RITMO_RESP_ORDER.map(r => ({ key: r, label: r.split(' ')[0], color: RESP_COLORS[r] }))];
+  el.innerHTML = opts.map((o,i) => `
+    <button class="ritmo-resp-btn${i===0?' active':''}"
+      style="${i===0?'background:#64748b;color:white':''}"
+      data-resp="${o.key}" data-color="${o.color}"
+      onclick="ritmoRespFilter(this,'${o.key}')">
+      ${o.label}
+    </button>`).join('');
+}
+
+function ritmoRespFilter(btn, respKey) {
+  document.querySelectorAll('.ritmo-resp-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = '#f1f5f9';
+    b.style.color = '#64748b';
+  });
+  btn.classList.add('active');
+  btn.style.background = btn.dataset.color;
+  btn.style.color = 'white';
+  renderRitmoDetail(respKey);
+}
+
+// ─── Update agora badge ──────────────────────────────────────────
+function updateAgoraBadge() {
+  const el = document.getElementById('ritmo-agora-badge');
+  if (!el) return;
+  const h = new Date().getHours();
+  el.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block"></span>Agora: ${h}h · horas passadas = realizado, futuras = planejado`;
+}
+
+// ─── Init ritmo tab ──────────────────────────────────────────────
+function initRitmoTab() {
+  updateAgoraBadge();
+  renderRitmoStrip();
+  renderRitmoCompChart();
+  buildRitmoRespTabs();
+  renderRitmoDetail('todos');
+}
+</script>
+
 <script>
 // ─── DATA ───────────────────────────────────────────────────────────────────
 const RESP_COLORS = {
@@ -1570,6 +2051,10 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById('tab-btn-' + tab).classList.add('active');
+  if (tab === 'ritmo' && !window._ritmoInited) {
+    window._ritmoInited = true;
+    setTimeout(initRitmoTab, 50);
+  }
 }
 // ─── PRAZOS DATA ──────────────────────────────────────────────────────────────
 const PRAZOS_DATA = [
